@@ -6,6 +6,7 @@ import bot.dc_bot as bot_module
 from db import db_module
 from api.storage import save_uploaded_image
 from api.auth import validate_request
+from config import BOT_SERVICES
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +78,11 @@ async def doorbell_event():
             event_id,
         )
         return jsonify({"error": "Notification service unavailable"}), 503
-
-    asyncio.create_task(
-        notification_cog.send_discord_notification(file_path, subscriptions)
-    )
+    if BOT_SERVICES:
+        asyncio.create_task(
+            notification_cog.send_discord_notification(file_path, subscriptions)
+        )
+    else:
+        logger.info("Bot services are disabled via configuration.")
 
     return jsonify({"status": "success"}), 200

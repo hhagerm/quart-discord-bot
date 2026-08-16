@@ -1,2 +1,4 @@
 .venv
-shh.txt
+.env
+captures
+test

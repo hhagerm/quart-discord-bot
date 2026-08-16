@@ -2,3 +2,4 @@
 .env
 captures
 test
+__pycache__/

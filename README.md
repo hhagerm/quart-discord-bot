@@ -16,7 +16,7 @@ This repository serves as the backend  for my [ESP Doorbell project](https://git
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/maxovina/quart-discord-bot.git](https://github.com/maxovina/quart-discord-bot.git)
+   git clone https://github.com/maxovina/quart-discord-bot.git
    cd quart-discord-bot
    ```
 

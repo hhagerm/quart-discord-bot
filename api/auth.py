@@ -5,7 +5,7 @@ from db import db_module
 
 MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 
-async def validate_request(f) -> function:
+def validate_request(f):
     @wraps(f)
     async def wrapper(*args, **kwargs):
         content_length = request.content_length

@@ -6,7 +6,7 @@ from quart import Quart
 
 import bot.dc_bot as bot_module
 from api.blueprints.doorbell_bp import doorbell_bp
-from errors import errors_bp
+from api.blueprints.errors import errors_bp
 
 from config import BOT_TOKEN
 from logging_config import LOGGING_CONFIG

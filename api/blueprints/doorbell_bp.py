@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from quart import Blueprint, request, jsonify
+from quart import Blueprint, request, jsonify, abort
 
 import bot.dc_bot as bot_module
 from db import db_module
@@ -12,23 +12,13 @@ logger = logging.getLogger(__name__)
 
 doorbell_bp = Blueprint("doorbell", __name__)
 
-MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 
+
+doorbell_bp.route
 
 @doorbell_bp.route("/doorbell", methods=["POST"])
-async def doorbell_event():
-    content_length = request.content_length
-    if content_length is None:
-        return jsonify({"error": "Length Required"}), 411
-
-    if content_length > MAX_PAYLOAD_SIZE:
-        return jsonify({"error": "Payload too large"}), 413
-
-    serial_number, response, code = await validate_request()
-    if not serial_number:
-        return response, code
-
-    event_id = request.headers.get("Event-ID")
+@validate_request
+async def doorbell_event(serial_number, event_id):
 
     try:
         is_new_event = await db_module.add_event(serial_number, event_id)
@@ -38,7 +28,8 @@ async def doorbell_event():
             event_id,
             serial_number,
         )
-        return jsonify({"error": "Database operation failed"}), 500
+        abort(500, "Database operation failed")
+
 
     if not is_new_event:
         logger.info(
@@ -53,7 +44,7 @@ async def doorbell_event():
             "Database failure retrieving subscriptions for serial %s",
             serial_number,
         )
-        return jsonify({"error": "Database operation failed"}), 500
+        abort(500, "Database operation failed")
 
     if not subscriptions:
         logger.info("No active subscriptions for serial %s", serial_number)
@@ -61,7 +52,7 @@ async def doorbell_event():
 
     raw_data: bytes = await request.get_data()
     if not raw_data:
-        return jsonify({"error": "No image data found"}), 400
+        abort(400, "No image data found")
 
     try:
         file_path: str = await save_uploaded_image(raw_data)
@@ -69,16 +60,16 @@ async def doorbell_event():
         logger.exception(
             "Failed to save image payload for event %s", event_id
         )
-        return jsonify({"error": "Failed to process image payload"}), 500
+        abort(500, "Failed to process image payload")
 
-    notification_cog = bot_module.bot.get_cog("NotificationCog")
-    if not notification_cog:
-        logger.error(
-            "NotificationCog unavailable; cannot dispatch alert for event %s",
-            event_id,
-        )
-        return jsonify({"error": "Notification service unavailable"}), 503
     if BOT_SERVICES:
+        notification_cog = bot_module.bot.get_cog("NotificationCog")
+        if not notification_cog:
+            logger.error(
+                "NotificationCog unavailable; cannot dispatch alert for event %s",
+                event_id,
+            )
+            abort(503, "Notification service unavailable")
         asyncio.create_task(
             notification_cog.send_discord_notification(file_path, subscriptions)
         )

@@ -1,8 +1,10 @@
 import pytest
+from unittest.mock import patch, AsyncMock
+from config import API_KEY
 
 HEADERS = {
     "Content-Length": "1",
-    "X-API-KEY": "secret", 
+    "X-API-KEY": API_KEY, 
     "Serial-Number": "123", 
     "Event-ID": "event1",
 }
@@ -10,6 +12,7 @@ HEADERS = {
 def headers_without(key_to_omit: str) -> dict:
     return {k: v for k, v in HEADERS.items() if k != key_to_omit}
 
+# TEST MISSING HEADERS
 @pytest.mark.parametrize(
     "headers, expected_status, expected_err",
     [
@@ -40,7 +43,7 @@ def headers_without(key_to_omit: str) -> dict:
     ]
 )
 @pytest.mark.asyncio
-async def test_doorbell_missing_headers(test_client, headers, expected_status, expected_err):
+async def test_missing_headers(test_client, headers, expected_status, expected_err):
     # Act
     response = await test_client.post("/doorbell", headers=headers)
     response_data = await response.get_json()
@@ -48,3 +51,40 @@ async def test_doorbell_missing_headers(test_client, headers, expected_status, e
     # Assert
     assert response.status_code == expected_status
     assert response_data["error"]["message"] == expected_err
+    
+@pytest.mark.asyncio
+async def test_invalid_api_key(test_client):
+    headers = HEADERS.copy()
+    headers["X-API-KEY"] = "invalid"
+    
+    response = await test_client.post("/doorbell", headers=headers)
+    response_data = await response.get_json()
+    
+    assert response.status_code == 401
+    assert response_data["error"]["message"] == "Unauthorized API Key"
+    
+    
+@pytest.mark.asyncio
+async def test_payload_too_large(test_client):
+    headers = HEADERS.copy()
+    headers["Content-Length"] = 5 * 1024 * 1024 + 1
+    
+    response = await test_client.post("/doorbell", headers=headers)
+    response_data = await response.get_json()
+    
+    assert response.status_code == 413
+    assert response_data["error"]["message"] == "Payload too large"
+
+    
+@pytest.mark.asyncio
+@patch("db.db_module.validate_serial_num", new_callable=AsyncMock)
+async def test_payload_missing(mock_validate, test_client):
+    mock_validate.return_value = True
+
+    headers = HEADERS.copy()
+    
+    response = await test_client.post("/doorbell", headers=headers)
+    response_data = await response.get_json()
+    
+    assert response.status_code == 400
+    assert response_data["error"]["message"] == "No image data found"

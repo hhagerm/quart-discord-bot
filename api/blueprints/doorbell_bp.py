@@ -20,6 +20,10 @@ doorbell_bp.route
 @validate_request
 async def doorbell_event(serial_number, event_id):
 
+    raw_data: bytes = await request.get_data()
+    if not raw_data:
+        abort(400, "No image data found")
+        
     try:
         is_new_event = await db_module.add_event(serial_number, event_id)
     except Exception:
@@ -50,9 +54,6 @@ async def doorbell_event(serial_number, event_id):
         logger.info("No active subscriptions for serial %s", serial_number)
         return jsonify({"status": "no subscriptions configured"}), 200
 
-    raw_data: bytes = await request.get_data()
-    if not raw_data:
-        abort(400, "No image data found")
 
     try:
         file_path: str = await save_uploaded_image(raw_data)

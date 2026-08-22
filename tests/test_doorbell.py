@@ -4,6 +4,7 @@ from config import API_KEY
 
 HEADERS = {
     "Content-Length": "1",
+    "Content-Type": "image/jpeg",
     "X-API-KEY": API_KEY, 
     "Serial-Number": "123", 
     "Event-ID": "event1",
@@ -21,6 +22,12 @@ def headers_without(key_to_omit: str) -> dict:
             411,
             "Length Required",
             id="missing_content_length"
+        ),
+        pytest.param(
+            headers_without("Content-Type"),
+            400,
+            "Content Type required",
+            id="missing_content_type"
         ),
         pytest.param(
             headers_without("X-API-KEY"),
@@ -55,7 +62,7 @@ async def test_missing_headers(test_client, headers, expected_status, expected_e
 @pytest.mark.asyncio
 async def test_invalid_api_key(test_client):
     headers = HEADERS.copy()
-    headers["X-API-KEY"] = "invalid"
+    headers["X-API-KEY"] = "invalid_api_key"
     
     response = await test_client.post("/doorbell", headers=headers)
     response_data = await response.get_json()
@@ -63,7 +70,18 @@ async def test_invalid_api_key(test_client):
     assert response.status_code == 401
     assert response_data["error"]["message"] == "Unauthorized API Key"
     
+@pytest.mark.asyncio
+async def test_invalid_content_type(test_client):
+    headers = HEADERS.copy()
+    headers["Content-Type"] = "invalid_content_type"
     
+    response = await test_client.post("/doorbell", headers=headers)
+    response_data = await response.get_json()
+    
+    assert response.status_code == 415
+    assert response_data["error"]["message"] == "Unsupported content type"
+
+
 @pytest.mark.asyncio
 async def test_payload_too_large(test_client):
     headers = HEADERS.copy()
@@ -88,3 +106,17 @@ async def test_payload_missing(mock_validate, test_client):
     
     assert response.status_code == 400
     assert response_data["error"]["message"] == "No image data found"
+    
+@pytest.mark.asyncio
+@patch("db.db_module.validate_serial_num", new_callable=AsyncMock)
+async def test_invalid_magic_bytes(mock_validate, test_client):
+    mock_validate.return_value = True
+    
+    headers = HEADERS.copy()
+    data = b"invalid_magic_bytes"
+    
+    response = await test_client.post("/doorbell", headers=headers, data=data)
+    response_data = await response.get_json()
+    
+    assert response.status_code == 415
+    assert response_data["error"]["message"] == "Invalid image format"

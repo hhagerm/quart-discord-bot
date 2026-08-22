@@ -19,7 +19,7 @@ def validate_request(f):
         if content_type is None:
             abort(400, "Content Type required")
         if content_type != "image/jpeg":
-            abort(415, "Unsupported payload type")
+            abort(415, "Unsupported content type")
         
         api_key = request.headers.get("X-API-KEY")
         serial_number = request.headers.get("Serial-Number")

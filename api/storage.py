@@ -7,6 +7,11 @@ from config import UPLOAD_FOLDER
 
 logger = logging.getLogger(__name__)
 
+JPEG_MAGIC_BYTES = b"\xff\xd8\xff"
+
+def is_valid_jpeg(data: bytes) -> bool:
+    return data.startswith(JPEG_MAGIC_BYTES)
+
 def _write_file_sync(path: str, data: bytes):
     with open(path, "wb") as f:
         f.write(data)

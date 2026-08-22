@@ -14,6 +14,13 @@ def validate_request(f):
         if content_length > MAX_PAYLOAD_SIZE:
             abort(413, "Payload too large")
         
+        
+        content_type = request.content_type
+        if content_type is None:
+            abort(400, "Content Type required")
+        if content_type != "image/jpeg":
+            abort(415, "Unsupported payload type")
+        
         api_key = request.headers.get("X-API-KEY")
         serial_number = request.headers.get("Serial-Number")
         event_id = request.headers.get("Event-ID")

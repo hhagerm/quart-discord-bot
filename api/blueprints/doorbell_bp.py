@@ -4,7 +4,7 @@ from quart import Blueprint, request, jsonify, abort
 
 import bot.dc_bot as bot_module
 from db import db_module
-from api.storage import save_uploaded_image
+from api.storage import save_uploaded_image, is_valid_jpeg
 from api.auth import validate_request
 from config import BOT_SERVICES
 
@@ -23,7 +23,11 @@ async def doorbell_event(serial_number, event_id):
     raw_data: bytes = await request.get_data()
     if not raw_data:
         abort(400, "No image data found")
-        
+    
+    if not is_valid_jpeg(raw_data):
+        logger.warning("Rejected payload from serial %s: invalid JPEG signature", serial_number)
+        abort(415, "Invalid image format")
+    
     try:
         is_new_event = await db_module.add_event(serial_number, event_id)
     except Exception:

@@ -15,3 +15,5 @@ DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "secret_password")
 DB_NAME = os.getenv("POSTGRES_NAME", "doorbell_db")
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=disable"
+
+MAX_PAYLOAD_SIZE = 5 * 1024 * 1024

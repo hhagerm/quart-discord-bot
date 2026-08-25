@@ -1,11 +1,8 @@
 from functools import wraps
-from quart import request, jsonify, Response, abort
-from config import API_KEY
-from db import db_module
+from quart import request, abort
+from config import API_KEY, MAX_PAYLOAD_SIZE
 
-MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
-
-def validate_request(f):
+def validate_headers(f):
     @wraps(f)
     async def wrapper(*args, **kwargs):
         content_length = request.content_length
@@ -30,9 +27,6 @@ def validate_request(f):
         
         if api_key != API_KEY:
             abort(401, "Unauthorized API Key")
-        
-        if not await db_module.validate_serial_num(serial_number):
-            abort(403, "Device unauthorized")
         
         kwargs["serial_number"] = serial_number
         kwargs["event_id"] = event_id

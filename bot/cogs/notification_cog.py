@@ -5,7 +5,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-from api.storage import delete_image
+from core.storage import delete_image
 
 logger = logging.getLogger(__name__)
 

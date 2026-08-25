@@ -1,5 +1,5 @@
 from quart import Quart
-from api.blueprints.doorbell_bp import doorbell_bp
+from api.blueprints.doorbell import doorbell_bp
 from api.blueprints.errors import errors_bp
 
 def create_app() -> Quart:

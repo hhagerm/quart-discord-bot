@@ -3,7 +3,6 @@ import asyncio
 import core.storage as storage
 import core.exceptions as exceptions
 from db import db_module
-from core.storage import save_uploaded_image
 from config import BOT_SERVICES
 import bot.dc_bot as bot_module
 
@@ -23,11 +22,10 @@ class NoSubscriptionsFound(EventResult):
     pass
 
 
-async def process_doorbell_event(serial_number, event_id, raw_data) -> EventResult:
+async def process_doorbell_event(serial_number: str, event_id: str, raw_data: bytes) -> EventResult:
     
     if not storage.is_valid_jpeg(raw_data):
         logger.warning("Rejected payload from serial %s: invalid JPEG signature", serial_number)
-        abort(415, "Invalid image format")
         raise exceptions.InvalidImageFormatError("Invalid image format")
     
     if not await db_module.validate_serial_num(serial_number):
@@ -64,7 +62,7 @@ async def process_doorbell_event(serial_number, event_id, raw_data) -> EventResu
         return NoSubscriptionsFound()
     
     try:
-        file_path: str = await save_uploaded_image(raw_data)
+        file_path: str = await storage.save_uploaded_image(raw_data)
     except Exception as err:
         logger.exception(
             "Failed to save image payload for event %s", event_id

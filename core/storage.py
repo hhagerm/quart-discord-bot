@@ -29,7 +29,6 @@ async def save_uploaded_image(raw_data: bytes) -> str:
 async def delete_image(path: str):
     try:
         await asyncio.to_thread(os.remove, path)
-        logger.info("Successfully deleted image: %s", path)
     except Exception:
        logger.exception("Failed to delete image: %s", path)
         

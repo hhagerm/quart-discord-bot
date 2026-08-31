@@ -1,0 +1,34 @@
+name: Run Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      TEST_USER: ${{ secrets.TEST_USER }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+      TEST_DB: ${{ secrets.TEST_DB }}
+      TEST_HOST: ${{ secrets.TEST_HOST }}
+      TEST_PORT: ${{ secrets.TEST_PORT }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start test database and run migrations
+        run: docker compose -f docker-compose.test.yml up -d --wait
+
+      - name: Run tests
+        run: pytest

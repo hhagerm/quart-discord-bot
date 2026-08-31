@@ -7,6 +7,7 @@ BOT_SERVICES = os.getenv("BOT_SERVICES", "true").lower() == "true"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_KEY = os.getenv("API_KEY")
 UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 DB_HOST = os.getenv("POSTGRES_HOST", "db")
 DB_PORT = int(os.getenv("POSTGRES_PORT", 5432))

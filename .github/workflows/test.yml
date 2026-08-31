@@ -30,8 +30,5 @@ jobs:
       - name: Start test database and run migrations
         run: docker compose -f docker-compose.test.yml up -d --wait
 
-      - name: Duplicate env template
-        run: cp .env.example .env
-
       - name: Run tests
         run: pytest

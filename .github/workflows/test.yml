@@ -28,8 +28,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Start test database and run migrations
-        run: docker compose -f docker-compose.test.yml up -d --wait
+      - name: Start test database
+        run: docker compose -f docker-compose.test.yml up -d db-test --wait
+
+      - name: Run migrations
+        run: docker compose -f docker-compose.test.yml run --rm migrator
 
       - name: Run tests
         run: pytest

@@ -27,3 +27,10 @@ services:
     depends_on:
       db-test:
         condition: service_healthy
+
+  ready:
+    image: alpine
+    command: ["true"]
+    depends_on:
+      migrator:
+        condition: service_completed_successfully

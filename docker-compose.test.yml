@@ -28,3 +28,15 @@ services:
     depends_on:
       db-test:
         condition: service_healthy
+
+  redis-test:
+    image: redis:8-alpine
+    restart: no
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+     - "${TEST_REDIS_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

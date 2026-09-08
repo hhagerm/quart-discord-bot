@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch, AsyncMock
 from services.doorbell_service import process_doorbell_event, EventProcessed, DuplicateEventIgnored, NoSubscriptionsFound
 from core import exceptions
 
@@ -24,7 +24,6 @@ def mock_redis_publish():
         yield mock
 
 
-@pytest.mark.asyncio
 async def test_process_event_success(mock_db, mock_storage, mock_redis_publish):
     result = await process_doorbell_event("123", "evt_1", b"fake_data")
 
@@ -32,7 +31,6 @@ async def test_process_event_success(mock_db, mock_storage, mock_redis_publish):
     mock_db.validate_serial_num.assert_awaited_once_with("123")
     mock_redis_publish.assert_awaited_once_with("test_image.jpg", ["sub"])
 
-@pytest.mark.asyncio
 async def test_invalid_img_format(mock_storage):
     mock_storage.is_valid_jpeg.return_value = False
     
@@ -41,7 +39,6 @@ async def test_invalid_img_format(mock_storage):
     
     assert str(exc_info.value) == "Invalid image format"
     
-@pytest.mark.asyncio
 async def test_unauthorized_serial_num(mock_storage, mock_db):
     mock_db.validate_serial_num.return_value = False
     
@@ -50,7 +47,6 @@ async def test_unauthorized_serial_num(mock_storage, mock_db):
     
     assert str(exc_info.value) == "Serial number 123 unauthorized"
 
-@pytest.mark.asyncio
 async def test_add_event_db_fail(mock_storage, mock_db):
     mock_db.add_event.side_effect = Exception()
     
@@ -59,7 +55,6 @@ async def test_add_event_db_fail(mock_storage, mock_db):
     
     assert str(exc_info.value) == "add_event failed"
     
-@pytest.mark.asyncio
 async def test_duplicate_event(mock_storage, mock_db):
     mock_db.add_event.return_value = False
     
@@ -67,7 +62,6 @@ async def test_duplicate_event(mock_storage, mock_db):
     
     assert isinstance(result, DuplicateEventIgnored)
 
-@pytest.mark.asyncio
 async def test_get_device_subscriptions_db_fail(mock_storage, mock_db):
     mock_db.get_device_subscriptions.side_effect = Exception()
     
@@ -76,7 +70,6 @@ async def test_get_device_subscriptions_db_fail(mock_storage, mock_db):
     
     assert str(exc_info.value) == "get_device_subscriptions failed"
     
-@pytest.mark.asyncio
 async def test_no_subscriptions(mock_storage, mock_db):
     mock_db.get_device_subscriptions.return_value = []
     
@@ -84,7 +77,6 @@ async def test_no_subscriptions(mock_storage, mock_db):
         
     assert isinstance(result, NoSubscriptionsFound)
     
-@pytest.mark.asyncio
 async def test_image_processing_err(mock_storage, mock_db):
     mock_storage.save_uploaded_image.side_effect = Exception()
     

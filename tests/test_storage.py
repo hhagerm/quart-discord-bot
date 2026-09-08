@@ -25,31 +25,27 @@ def test_write_file_sync_raises_io_error(tmp_path):
     with pytest.raises(FileNotFoundError):
         storage._write_file_sync(str(invalid_path), b"data")
         
-@pytest.mark.asyncio
 @patch("core.storage._write_file_sync")
-@patch("core.storage.UPLOAD_FOLDER", "/mock/upload/dir")
-async def test_save_uploaded_image(mock_write):
+async def test_save_uploaded_image(mock_write, monkeypatch):
+    monkeypatch.setattr(storage, "UPLOAD_FOLDER", "/mock/upload/dir")
+
     raw_data = b"fake_image_data"
-    
     file_path = await storage.save_uploaded_image(raw_data)
-    
+
     expected_prefix = os.path.join("/mock/upload/dir", "visitor_")
-    
     assert file_path.startswith(expected_prefix)
     assert file_path.endswith(".jpg")
     mock_write.assert_called_once_with(file_path, raw_data)
 
 
-@pytest.mark.asyncio
 @patch("os.remove")
-async def test_delete_image_success(mock_remove, caplog):
+async def test_delete_image_success(mock_remove):
     test_path = "/mock/path.jpg"
     
     await storage.delete_image(test_path)
     
     mock_remove.assert_called_once_with(test_path)
 
-@pytest.mark.asyncio
 @patch("os.remove")
 async def test_delete_image_handles_exception(mock_remove, caplog):
     test_path = "/mock/path.jpg"

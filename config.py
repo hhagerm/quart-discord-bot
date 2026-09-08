@@ -27,4 +27,7 @@ TEST_DATABASE_URL = f"postgresql://{TEST_DB_USER}:{TEST_DB_PASSWORD}@localhost:{
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
+TEST_REDIS_HOST = os.getenv("TEST_REDIS_HOST", "localhost")
+TEST_REDIS_PORT = int(os.getenv("TEST_REDIS_PORT", 6380))
+
 MAX_PAYLOAD_SIZE = 5 * 1024 * 1024

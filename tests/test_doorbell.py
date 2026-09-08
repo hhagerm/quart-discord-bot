@@ -52,7 +52,6 @@ def get_valid_request() -> tuple[dict, bytes]:
         ),
     ]
 )
-@pytest.mark.asyncio
 async def test_missing_headers(test_client, key_to_omit, expected_status, expected_err):
     headers, _ = get_valid_request()
     headers.pop(key_to_omit, None)
@@ -89,7 +88,6 @@ async def test_missing_headers(test_client, key_to_omit, expected_status, expect
         ),
     ]
 )
-@pytest.mark.asyncio
 async def test_invalid_header_values(test_client, header_override, expected_status, expected_err):
     headers, _ = get_valid_request()
     new_headers = {**headers, **header_override}
@@ -100,7 +98,6 @@ async def test_invalid_header_values(test_client, header_override, expected_stat
     assert response_data["error"]["message"] == expected_err
 
 # TEST MISSING PAYLOAD
-@pytest.mark.asyncio
 async def test_payload_missing(test_client):
 
     headers, _ = get_valid_request()
@@ -136,7 +133,6 @@ async def test_payload_missing(test_client):
     ]
 )
 @patch("api.blueprints.doorbell.service.process_doorbell_event", new_callable=AsyncMock)
-@pytest.mark.asyncio
 async def test_results_success(mock_result, test_client, result_class, expected_status, expected_message):
     mock_result.return_value = result_class()
     
@@ -150,7 +146,6 @@ async def test_results_success(mock_result, test_client, result_class, expected_
 
 # TEST UNHANDLED RESULT TYPE
 @patch("api.blueprints.doorbell.service.process_doorbell_event", new_callable=AsyncMock)
-@pytest.mark.asyncio
 async def test_unhandled_result_type(mock_process_event, test_client):
     mock_process_event.return_value = object()
     
@@ -204,7 +199,6 @@ async def test_unhandled_result_type(mock_process_event, test_client):
     ]
 )
 @patch("api.blueprints.doorbell.service.process_doorbell_event", new_callable=AsyncMock)
-@pytest.mark.asyncio
 async def test_results_exceptions(mock_result, test_client, exception_class, expected_status, expected_err):
     mock_result.side_effect = exception_class()
     

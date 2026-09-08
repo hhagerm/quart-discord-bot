@@ -1,3 +1,4 @@
+name: doorbell-backend
 services:
   db:
     image: postgres:18-alpine
@@ -31,18 +32,58 @@ services:
       db:
         condition: service_healthy
 
-  doorbell:
-    image: quart-dcbot
+  doorbell_api:
+    image: doorbell-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
     volumes:
-      - ./:/app
+      - ./${UPLOAD_FOLDER:-captures}:/app/${UPLOAD_FOLDER:-captures}
     depends_on:
       migrator:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+  
+  doorbell_bot:
+    image: doorbell-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    volumes:
+      - ./${UPLOAD_FOLDER:-captures}:/app/${UPLOAD_FOLDER:-captures}
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+     - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
+  redis_data:

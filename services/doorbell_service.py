@@ -1,10 +1,10 @@
 import logging
 import asyncio
+
 import core.storage as storage
 import core.exceptions as exceptions
 from db import db_module
-from config import BOT_SERVICES
-import bot.dc_bot as bot_module
+from redis_module import publish_notification
 
 logger = logging.getLogger(__name__)
 
@@ -68,19 +68,8 @@ async def process_doorbell_event(serial_number: str, event_id: str, raw_data: by
             "Failed to save image payload for event %s", event_id
         )
         raise exceptions.ImageProcessingError() from err
+
+    await publish_notification(file_path, subscriptions)
     
-    if BOT_SERVICES:
-        notification_cog = bot_module.bot.get_cog("NotificationCog")
-        if not notification_cog:
-            logger.error(
-                "NotificationCog unavailable; cannot dispatch alert for event %s",
-                event_id,
-            )
-            raise exceptions.NotificationServiceError()
-        asyncio.create_task(
-            notification_cog.send_discord_notification(file_path, subscriptions)
-        )
-    else:
-        logger.debug("Bot services are disabled via configuration.")
     return EventProcessed()
     

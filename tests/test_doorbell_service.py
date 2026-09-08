@@ -19,24 +19,18 @@ def mock_storage():
         yield mock
 
 @pytest.fixture
-def mock_bot():
-    with patch("services.doorbell_service.bot_module") as mock:
-        mock_cog = MagicMock()
-        mock_cog.send_discord_notification = AsyncMock()
-        mock.bot.get_cog.return_value = mock_cog
+def mock_redis_publish():
+    with patch("services.doorbell_service.publish_notification") as mock:
         yield mock
-        
+
+
 @pytest.mark.asyncio
-async def test_process_event_success(mock_db, mock_storage, mock_bot):
-    mock_cog = mock_bot.bot.get_cog.return_value
-    
+async def test_process_event_success(mock_db, mock_storage, mock_redis_publish):
     result = await process_doorbell_event("123", "evt_1", b"fake_data")
-    
+
     assert isinstance(result, EventProcessed)
-    mock_db.validate_serial_num.assert_called_once_with("123")
-    mock_bot.bot.get_cog.assert_called_once_with("NotificationCog")
-    mock_cog.send_discord_notification.assert_called_once_with("test_image.jpg", ["sub"])
-    
+    mock_db.validate_serial_num.assert_awaited_once_with("123")
+    mock_redis_publish.assert_awaited_once_with("test_image.jpg", ["sub"])
 
 @pytest.mark.asyncio
 async def test_invalid_img_format(mock_storage):
@@ -97,17 +91,3 @@ async def test_image_processing_err(mock_storage, mock_db):
     with pytest.raises(exceptions.ImageProcessingError):
         await process_doorbell_event("123", "evt_1", b"fake_data")
         
-@pytest.mark.asyncio
-async def test_notification_service_err(mock_storage, mock_db, mock_bot):
-    mock_bot.bot.get_cog.return_value = None
-    
-    with pytest.raises(exceptions.NotificationServiceError):
-        await process_doorbell_event("123", "evt_1", b"fake_data")
-
-@patch("services.doorbell_service.BOT_SERVICES", False)
-@pytest.mark.asyncio
-async def test_bot_services_disabled(mock_storage, mock_db, mock_bot):
-    result = await process_doorbell_event("123", "evt_1", b"fake_data")
-    
-    assert isinstance(result, EventProcessed)
-    mock_bot.bot.get_cog.assert_not_called()

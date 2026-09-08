@@ -1,7 +1,8 @@
+name: doorbell-backend-test
 services:
   db-test:
     image: postgres:18-alpine
-    restart: unless-stopped
+    restart: no
     environment:
       POSTGRES_USER: ${TEST_USER}
       POSTGRES_PASSWORD: ${TEST_PASSWORD}

@@ -9,14 +9,12 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      TEST_USER: ${{ secrets.TEST_USER }}
-      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-      TEST_DB: ${{ secrets.TEST_DB }}
-      TEST_HOST: ${{ secrets.TEST_HOST }}
-      TEST_PORT: ${{ secrets.TEST_PORT }}
-      TEST_REDIS_HOST: ${{ secrets.TEST_REDIS_HOST }}
-      TEST_REDIS_PORT: ${{ secrets.TEST_REDIS_PORT }}
-      API_KEY: ${{ secrets.API_KEY}}
+      TEST_USER: test_user
+      TEST_PASSWORD: test_password
+      TEST_DB: test_doorbell
+      TEST_PORT: 5433
+      TEST_REDIS_PORT: 6380
+      API_KEY: ${{ secrets.API_KEY }}
 
     steps:
       - name: Checkout code

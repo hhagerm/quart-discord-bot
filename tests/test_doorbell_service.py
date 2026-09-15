@@ -9,6 +9,8 @@ def mock_db():
         mock.validate_serial_num = AsyncMock(return_value = True)
         mock.add_event = AsyncMock(return_value = True)
         mock.get_device_subscriptions = AsyncMock(return_value=["sub"])
+        mock.is_completed_event =  AsyncMock(return_value = True)
+        mock.mark_event_completed = AsyncMock()
         yield mock
 
 @pytest.fixture
@@ -22,6 +24,7 @@ def mock_storage():
 def mock_redis_publish():
     with patch("services.doorbell_service.publish_notification") as mock:
         yield mock
+        
 
 
 async def test_process_event_success(mock_db, mock_storage, mock_redis_publish):

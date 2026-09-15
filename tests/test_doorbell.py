@@ -126,7 +126,7 @@ async def test_payload_missing(test_client):
         ),
         pytest.param(
             EventProcessed,
-            200,
+            202,
             "Event Processed Successfully",
             id="event_processed"
         ),

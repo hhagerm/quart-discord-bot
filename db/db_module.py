@@ -143,3 +143,31 @@ async def add_event(serial_number: str, event_id: str) -> bool:
     except Exception:
         logger.exception("Failed to execute add_event")
         raise
+    
+async def is_completed_event(event_id: str) -> bool:
+    pool = get_pool()
+    try:
+        result = await pool.fetchval(
+            """
+            SELECT completed
+            FROM processed_events
+            WHERE event_id = $1
+            """,
+            event_id
+        )
+        
+        return result == True
+    except Exception:
+        logger.exception("Failed to execute is_completed_event")
+        raise
+
+async def mark_event_completed(event_id: str) -> None:
+    pool = get_pool()
+    try:
+        await pool.execute(
+            "UPDATE processed_events SET completed = TRUE WHERE event_id = $1",
+            event_id,
+        )
+    except Exception:
+        logger.exception("Failed to mark event %s as completed", event_id)
+        raise

@@ -28,7 +28,7 @@ async def doorbell_event(serial_number, event_id):
             case NoSubscriptionsFound():
                 return jsonify({"status": "success", "message": "No Active Subscriptions Configured"}), 200
             case EventProcessed():
-                return jsonify({"status": "success", "message": "Event Processed Successfully"}), 200
+                return jsonify({"status": "success", "message": "Event Processed Successfully"}), 202
             case _:
                 logger.error("Received unhandled process result type: %s", type(result))
                 abort(500, "Internal Server Error")

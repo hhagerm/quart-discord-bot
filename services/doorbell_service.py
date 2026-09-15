@@ -43,10 +43,22 @@ async def process_doorbell_event(serial_number: str, event_id: str, raw_data: by
 
 
     if not is_new_event:
-        logger.info(
-            "Ignored duplicate event %s for serial %s", event_id, serial_number
-        ) 
-        return DuplicateEventIgnored()
+        try:
+            is_completed_event = await db_module.is_completed_event(event_id)
+        except Exception as err:
+            logger.exception(
+                "Database failure checking completion status for event %s, serial %s",
+                event_id,
+                serial_number,
+            )
+            raise exceptions.DatabaseError("is_completed_event failed") from err
+        
+        
+        if is_completed_event:
+            logger.info(
+                "Ignored duplicate event %s for serial %s", event_id, serial_number
+            ) 
+            return DuplicateEventIgnored()
 
     try:
         subscriptions = await db_module.get_device_subscriptions(serial_number)
@@ -58,6 +70,11 @@ async def process_doorbell_event(serial_number: str, event_id: str, raw_data: by
         raise exceptions.DatabaseError("get_device_subscriptions failed")
 
     if not subscriptions:
+        try:
+            await db_module.mark_event_completed(event_id)
+        except Exception as err:
+            raise exceptions.DatabaseError("mark_event_completed failed") from err
+        
         logger.info("No active subscriptions for serial %s", serial_number)
         return NoSubscriptionsFound()
     
@@ -69,7 +86,16 @@ async def process_doorbell_event(serial_number: str, event_id: str, raw_data: by
         )
         raise exceptions.ImageProcessingError() from err
 
-    await publish_notification(file_path, subscriptions)
+    try:
+        await publish_notification(file_path, subscriptions)
+    except Exception as err:
+        logger.exception("Failed to publish notification for event %s", event_id)
+        raise exceptions.NotificationServiceError() from err
+    
+    try:
+        await db_module.mark_event_completed(event_id)
+    except Exception as err:
+        raise exceptions.DatabaseError("mark_event_completed failed") from err
     
     return EventProcessed()
     

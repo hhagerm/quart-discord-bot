@@ -1,7 +1,7 @@
 import pytest_asyncio
 import pytest
 from unittest.mock import patch
-from asyncpg.exceptions import ForeignKeyViolationError
+import core.exceptions as exceptions
 from db import db_module
 from config import TEST_DATABASE_URL
 
@@ -89,7 +89,7 @@ class TestAddEvent:
         assert result is True
     
     async def test_add_event_raises_on_foreign_key_violation(self):
-        with pytest.raises(ForeignKeyViolationError):
+        with pytest.raises(exceptions.DatabaseError):
             await db_module.add_event("GHOST-SN", "some-event-id")
 
 class TestGetDeviceSubscriptions:
@@ -146,5 +146,7 @@ class TestAddSubscription:
         assert row["channel_id"] == 999
     
     async def test_add_subscription_returns_false_when_device_does_not_exist(self):
-        result = await db_module.add_subscription("GHOST-SN", guild_id=1, channel_id=100)
-        assert result is False
+        with pytest.raises(exceptions.DatabaseError):
+            await db_module.add_subscription("GHOST-SN", guild_id=1, channel_id=100)
+        
+    

@@ -1,7 +1,9 @@
 import pytest
+from asyncpg.exceptions import PostgresError
 from unittest.mock import patch, AsyncMock
 from services.doorbell_service import process_doorbell_event, EventProcessed, DuplicateEventIgnored, NoSubscriptionsFound
 from core import exceptions
+
 
 @pytest.fixture
 def mock_db():
@@ -51,7 +53,7 @@ async def test_unauthorized_serial_num(mock_storage, mock_db):
     assert str(exc_info.value) == "Serial number 123 unauthorized"
 
 async def test_add_event_db_fail(mock_storage, mock_db):
-    mock_db.add_event.side_effect = Exception()
+    mock_db.add_event.side_effect = exceptions.DatabaseError("add_event failed")
     
     with pytest.raises(exceptions.DatabaseError) as exc_info:
         await process_doorbell_event("123", "evt_1", b"fake_data")
@@ -66,7 +68,7 @@ async def test_duplicate_event(mock_storage, mock_db):
     assert isinstance(result, DuplicateEventIgnored)
 
 async def test_get_device_subscriptions_db_fail(mock_storage, mock_db):
-    mock_db.get_device_subscriptions.side_effect = Exception()
+    mock_db.get_device_subscriptions.side_effect = exceptions.DatabaseError("get_device_subscriptions failed")
     
     with pytest.raises(exceptions.DatabaseError) as exc_info:
         await process_doorbell_event("123", "evt_1", b"fake_data")

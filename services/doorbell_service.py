@@ -29,52 +29,22 @@ async def process_doorbell_event(serial_number: str, event_id: str, raw_data: by
         raise exceptions.InvalidImageFormatError("Invalid image format")
     
     if not await db_module.validate_serial_num(serial_number):
+        logger.warning("Rejected request from serial %s: invalid serial number", serial_number)
         raise exceptions.DeviceUnauthorizedError(f"Serial number {serial_number} unauthorized")
     
-    try:
-        is_new_event = await db_module.add_event(serial_number, event_id)
-    except Exception as err:
-        logger.exception(
-            "Database failure recording event %s for serial %s",
-            event_id,
-            serial_number,
-        )
-        raise exceptions.DatabaseError("add_event failed") from err
-
+    is_new_event = await db_module.add_event(serial_number, event_id)
 
     if not is_new_event:
-        try:
-            is_completed_event = await db_module.is_completed_event(event_id)
-        except Exception as err:
-            logger.exception(
-                "Database failure checking completion status for event %s, serial %s",
-                event_id,
-                serial_number,
-            )
-            raise exceptions.DatabaseError("is_completed_event failed") from err
-        
-        
-        if is_completed_event:
+        if await db_module.is_completed_event(event_id):
             logger.info(
                 "Ignored duplicate event %s for serial %s", event_id, serial_number
             ) 
             return DuplicateEventIgnored()
 
-    try:
-        subscriptions = await db_module.get_device_subscriptions(serial_number)
-    except Exception:
-        logger.exception(
-            "Database failure retrieving subscriptions for serial %s",
-            serial_number,
-        )
-        raise exceptions.DatabaseError("get_device_subscriptions failed")
+    subscriptions = await db_module.get_device_subscriptions(serial_number)
 
     if not subscriptions:
-        try:
-            await db_module.mark_event_completed(event_id)
-        except Exception as err:
-            raise exceptions.DatabaseError("mark_event_completed failed") from err
-        
+        await db_module.mark_event_completed(event_id)
         logger.info("No active subscriptions for serial %s", serial_number)
         return NoSubscriptionsFound()
     
@@ -92,10 +62,8 @@ async def process_doorbell_event(serial_number: str, event_id: str, raw_data: by
         logger.exception("Failed to publish notification for event %s", event_id)
         raise exceptions.NotificationServiceError() from err
     
-    try:
-        await db_module.mark_event_completed(event_id)
-    except Exception as err:
-        raise exceptions.DatabaseError("mark_event_completed failed") from err
+
+    await db_module.mark_event_completed(event_id)
     
     return EventProcessed()
     

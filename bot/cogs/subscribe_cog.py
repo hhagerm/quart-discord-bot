@@ -29,19 +29,24 @@ class SubscribeCog(commands.Cog):
         
         guild_id = interaction.guild_id
         channel_id = channel.id
+        try:
+            success = await db_module.add_subscription(serial_number, guild_id, channel_id)
         
-        success = await db_module.add_subscription(serial_number, guild_id, channel_id)
-        
-        if success:
+            if success:
+                await interaction.response.send_message(
+                    f"✅ Device `{serial_number}` successfully subscribed to {channel.mention}!",
+                    ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    "⚠️ Device verified, but failed to save subscription.",
+                    ephemeral=True
+                )
+        except Exception:
             await interaction.response.send_message(
-                f"✅ Device `{serial_number}` successfully subscribed to {channel.mention}!",
-                ephemeral=True
-            )
-        else:
-            await interaction.response.send_message(
-                "⚠️ Device verified, but failed to save subscription.",
-                ephemeral=True
-            )
+                    f"⚠️ Internal error.",
+                    ephemeral=True
+                )
 
     @app_commands.command(
             name="unsubscribe"
@@ -54,18 +59,24 @@ class SubscribeCog(commands.Cog):
     ):
         guild_id = interaction.guild_id
         
-        removed = await db_module.remove_subscription(serial_number, guild_id)
-        
-        if removed:
-            await interaction.response.send_message(
-                f"🗑️ Device `{serial_number}` has been unsubscribed from this server.",
-                ephemeral=True
-            )
-        else:
-            await interaction.response.send_message(
-                f"❌ No active subscription found for device `{serial_number}` in this server.",
-                ephemeral=True
-            )
+        try:
+            removed = await db_module.remove_subscription(serial_number, guild_id)
+            
+            if removed:
+                await interaction.response.send_message(
+                    f"🗑️ Device `{serial_number}` has been unsubscribed from this server.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    f"❌ No active subscription found for device `{serial_number}` in this server.",
+                    ephemeral=True
+                )
+        except Exception:
+                await interaction.response.send_message(
+                        f"⚠️ Internal error.",
+                        ephemeral=True
+                    )
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(SubscribeCog(bot))

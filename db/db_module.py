@@ -3,6 +3,8 @@ from typing import List, Tuple, Optional
 
 import asyncpg
 
+from core.error_handling import catch_exception
+import core.exceptions as exceptions
 from config import DATABASE_URL
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,6 @@ def get_pool() -> asyncpg.Pool:
         raise RuntimeError("Database pool is not initialized.")
     return _pool
 
-
 async def verify_pair_code(serial_number: str, pairing_code: str) -> bool:
     pool = get_pool()
     try:
@@ -49,7 +50,7 @@ async def verify_pair_code(serial_number: str, pairing_code: str) -> bool:
         
     except Exception:
         logger.exception("Failed to validate device paircode")
-        return False
+        raise
 
 
 async def add_subscription(serial_number: str, guild_id: int, channel_id: int) -> bool:
@@ -69,7 +70,7 @@ async def add_subscription(serial_number: str, guild_id: int, channel_id: int) -
         return True
     except Exception:
         logger.exception("Failed to add subscription")
-        return False
+        raise
 
 
 async def remove_subscription(serial_number: str, guild_id: int) -> bool:
@@ -86,7 +87,7 @@ async def remove_subscription(serial_number: str, guild_id: int) -> bool:
         return result is not None
     except Exception:
         logger.exception("Failed to remove subscription")
-        return False
+        raise
 
 async def validate_serial_num(serial_number: str) -> bool:
     pool = get_pool()
@@ -101,11 +102,15 @@ async def validate_serial_num(serial_number: str) -> bool:
             """,
             serial_number
         )
-        return device_exists
         
-    except Exception:
-        logger.exception("Failed to check device status")
-        return False
+        return device_exists
+    
+    except Exception as err:
+        logger.exception("Failed to validate serial number: %s", serial_number)
+        raise exceptions.DatabaseError("validate_serial_num failed") from err
+
+
+        
 
 
 async def get_device_subscriptions(serial_number: str) -> List[Tuple[int, int]]:
@@ -121,9 +126,9 @@ async def get_device_subscriptions(serial_number: str) -> List[Tuple[int, int]]:
         )
         return [(row['guild_id'], row['channel_id']) for row in rows]
     
-    except Exception:
+    except Exception as err:
         logger.exception("Failed to fetch subscriptions")
-        return []
+        raise exceptions.DatabaseError("get_device_subscriptions failed") from err
     
 
 async def add_event(serial_number: str, event_id: str) -> bool:
@@ -140,9 +145,13 @@ async def add_event(serial_number: str, event_id: str) -> bool:
         )
         return result is not None
     
-    except Exception:
-        logger.exception("Failed to execute add_event")
-        raise
+    except Exception as err:
+        logger.exception(
+                "Database failure recording event %s for serial %s",
+                event_id,
+                serial_number,
+            )
+        raise exceptions.DatabaseError("add_event failed") from err
     
 async def is_completed_event(event_id: str) -> bool:
     pool = get_pool()
@@ -157,9 +166,12 @@ async def is_completed_event(event_id: str) -> bool:
         )
         
         return result == True
-    except Exception:
-        logger.exception("Failed to execute is_completed_event")
-        raise
+    except Exception as err:
+        logger.exception(
+            "Database failure checking completion status for event %s",
+            event_id,
+        )
+        raise exceptions.DatabaseError("is_completed_event failed") from err
 
 async def mark_event_completed(event_id: str) -> None:
     pool = get_pool()
@@ -168,6 +180,6 @@ async def mark_event_completed(event_id: str) -> None:
             "UPDATE processed_events SET completed = TRUE WHERE event_id = $1",
             event_id,
         )
-    except Exception:
+    except Exception as err:
         logger.exception("Failed to mark event %s as completed", event_id)
-        raise
+        raise exceptions.DatabaseError("mark_event_completed failed") from err

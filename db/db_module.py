@@ -3,7 +3,6 @@ from typing import List, Tuple, Optional
 
 import asyncpg
 
-from core.error_handling import catch_exception
 import core.exceptions as exceptions
 from config import DATABASE_URL
 

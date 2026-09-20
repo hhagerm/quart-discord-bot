@@ -1,6 +1,6 @@
 # Quart & Discord.py Backend Service
 
-An asynchronous backend service that receives image events over HTTP and delivers them as Discord notifications. A Quart application served via Hypercorn handles ingest, a separate discord.py bot handles delivery, and the two are decoupled by a Redis queue. Orchestrated via Docker Compose with a PostgreSQL database.
+An asynchronous backend service that receives image events over HTTP and delivers them as Discord notifications. A Quart application served via Hypercorn handles ingest, a separate discord.py bot handles delivery, and the two are decoupled by a Redis Stream. Orchestrated via Docker Compose with a PostgreSQL database.
 
 Originally built as the backend for my [ESP Doorbell project](https://github.com/maxovina/esp_cam_module). The hardware side is no longer maintained, but any HTTP client that sends a JPEG with the required headers works as a producer.
 
@@ -9,8 +9,8 @@ Originally built as the backend for my [ESP Doorbell project](https://github.com
 ## Architecture
 
 * **API:** Quart application running on Hypercorn. Validates headers and API key, authorises the device, deduplicates the event, stores the image and enqueues a notification job. Never talks to Discord itself.
-* **Bot:** Asynchronous discord.py bot utilizing modular cogs. Consumes the queue and sends embeds, and serves the `/subscribe` and `/unsubscribe` slash commands.
-* **Queue:** Redis list sitting between the two. Discord rate limits and outages can't slow down or fail a device upload, since delivery happens outside the request.
+* **Bot:** Asynchronous discord.py bot utilizing modular cogs. Consumes the stream and sends embeds, and serves the `/subscribe` and `/unsubscribe` slash commands.
+* **Queue:** Redis Stream with a consumer group sitting between the two. Discord rate limits and outages can't slow down or fail a device upload, since delivery happens outside the request. Messages are acknowledged only after delivery.
 * **Idempotency:** Events carry an `Event-ID` enforced as a primary key, so retries from a device on bad Wi-Fi never produce duplicate notifications.
 * **Database:** PostgreSQL instance managed with yoyo migrations, applied by a one-shot container that the API and bot both wait on.
 * **Error handling:** Custom exception types translated into HTTP error responses.
@@ -22,7 +22,7 @@ Covers the API layer (request validation, HTTP responses), service layer (orches
 
 ## Getting Started
 
-> **Note:** This service expects requests from the companion [ESP Doorbell hardware](https://github.com/maxovina/esp_cam_module). The API and bot will run without it, but you won't receive live doorbell events unless the ESP device is present.
+ > **Note:** The companion [ESP Doorbell hardware](https://github.com/maxovina/esp_cam_module) is no longer maintained. Any HTTP client that sends a JPEG with the required headers can act as a device.
 
 1. Clone the repository:
 ```bash

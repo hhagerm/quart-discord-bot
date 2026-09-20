@@ -1,4 +1,5 @@
 import logging
+import logging.config
 
 from api.factory import create_app
 from logging_config import LOGGING_CONFIG

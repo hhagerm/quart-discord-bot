@@ -2,14 +2,14 @@ import os
 from quart import Quart
 from api.blueprints.doorbell import doorbell_bp
 from api.blueprints.errors import errors_bp
-from config import UPLOAD_FOLDER
+from config import UPLOAD_FOLDER, MAX_PAYLOAD_SIZE
 
 def create_app() -> Quart:
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     
     app = Quart(__name__)
     
-    app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
+    app.config["MAX_CONTENT_LENGTH"] = MAX_PAYLOAD_SIZE
     
     app.register_blueprint(doorbell_bp)
     app.register_blueprint(errors_bp)

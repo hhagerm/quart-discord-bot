@@ -15,3 +15,10 @@ class NotificationServiceError(DoorBellException):
 
 class InvalidImageFormatError(DoorBellException):
     pass
+
+
+class DiscordBotException(Exception):
+    pass
+
+class ChannelNotFoundError(DiscordBotException):
+    pass

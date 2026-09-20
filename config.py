@@ -1,15 +1,7 @@
-# config.py
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
-
-def require(name: str) -> str:
-    value = os.getenv(name)
-    if not value:
-        raise RuntimeError(f"Required environment variable {name} is not set")
-    return value
 
 
 def build_db_url(user: str, password: str, host: str, port: int, name: str) -> str:
@@ -39,4 +31,5 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 TEST_REDIS_HOST = os.getenv("TEST_REDIS_HOST", "localhost")
 TEST_REDIS_PORT = int(os.getenv("TEST_REDIS_PORT", 6380))
 
-MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
+MAX_PAYLOAD_SIZE = int(os.getenv("MAX_PAYLOAD_SIZE_MB", 5)) * 1024 * 1024
+NOTIFICATION_MAX_AGE_SECONDS = int(os.getenv("NOTIFICATION_MAX_AGE_SECONDS", 300))

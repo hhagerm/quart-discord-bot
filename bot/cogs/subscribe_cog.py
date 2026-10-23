@@ -1,8 +1,12 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import logging
 
 from db import db_module
+import core.exceptions as exceptions
+
+logger = logging.getLogger(__name__)
 
 class SubscribeCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -19,34 +23,25 @@ class SubscribeCog(commands.Cog):
         pairing_code: str,
         channel: discord.TextChannel,
     ):
-
-        if not await db_module.verify_pair_code(serial_number, pairing_code):
-            await interaction.response.send_message(
-                            "❌ Invalid serial number or pairing code. Please check your credentials and try again.",
-                            ephemeral=True
-                        )
-            return
-        
         guild_id = interaction.guild_id
-        channel_id = channel.id
-        try:
-            success = await db_module.add_subscription(serial_number, guild_id, channel_id)
         
-            if success:
+        try:
+            if not await db_module.verify_pair_code(serial_number, pairing_code):
                 await interaction.response.send_message(
-                    f"✅ Device `{serial_number}` successfully subscribed to {channel.mention}!",
-                    ephemeral=True
+                    "❌ Invalid serial number or pairing code. Please check your credentials and try again.",
+                    ephemeral=True,
                 )
-            else:
-                await interaction.response.send_message(
-                    "⚠️ Device verified, but failed to save subscription.",
-                    ephemeral=True
-                )
-        except Exception:
-            await interaction.response.send_message(
-                    f"⚠️ Internal error.",
-                    ephemeral=True
-                )
+                return
+            await db_module.add_subscription(serial_number, guild_id, channel.id)
+        except exceptions.DatabaseError:
+            logger.exception("Failed to subscribe device %s", serial_number)
+            await interaction.response.send_message("⚠️ Internal error.", ephemeral=True)
+            return
+
+        await interaction.response.send_message(
+            f"✅ Device `{serial_number}` successfully subscribed to {channel.mention}!",
+            ephemeral=True,
+        )
 
     @app_commands.command(
             name="unsubscribe"
@@ -60,23 +55,23 @@ class SubscribeCog(commands.Cog):
         guild_id = interaction.guild_id
         
         try:
-            removed = await db_module.remove_subscription(serial_number, guild_id)
-            
-            if removed:
-                await interaction.response.send_message(
-                    f"🗑️ Device `{serial_number}` has been unsubscribed from this server.",
-                    ephemeral=True
-                )
-            else:
+            if not await db_module.remove_subscription(serial_number, guild_id):
                 await interaction.response.send_message(
                     f"❌ No active subscription found for device `{serial_number}` in this server.",
                     ephemeral=True
                 )
-        except Exception:
-                await interaction.response.send_message(
-                        f"⚠️ Internal error.",
-                        ephemeral=True
-                    )
+                return
+            
+        except exceptions.DatabaseError:
+            logger.exception("Failed to unsubscribe device %s", serial_number)
+            await interaction.response.send_message("⚠️ Internal error.", ephemeral=True)
+            return
+        
+        await interaction.response.send_message(
+            f"✅ Device {serial_number} has been unsubscribed from this server.",
+            ephemeral=True
+        )
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(SubscribeCog(bot))
